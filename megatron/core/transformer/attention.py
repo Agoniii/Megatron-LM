@@ -47,6 +47,7 @@ class Attention(MegatronModule, ABC):
         config: TransformerConfig,
         submodules: Union[SelfAttentionSubmodules, CrossAttentionSubmodules],
         layer_number: int = 1,
+        rotary_interleaved: bool = False,
         attn_mask_type=AttnMaskType.padding,
         **kwargs,
     ):
@@ -55,6 +56,7 @@ class Attention(MegatronModule, ABC):
         self.config = config
         self.layer_number = layer_number
         self.attn_mask_type = attn_mask_type
+        self.rotary_interleaved = rotary_interleaved
 
         # For normal attention without groups, num_query_groups == num_attention_heads,
         # so these two will be the same
@@ -230,8 +232,8 @@ class Attention(MegatronModule, ABC):
         # ================================================
         if rotary_pos_emb is not None:
             q_pos_emb, k_pos_emb = rotary_pos_emb
-            query = apply_rotary_pos_emb(query, q_pos_emb)
-            key = apply_rotary_pos_emb(key, k_pos_emb)
+            query = apply_rotary_pos_emb(query, q_pos_emb, self.rotary_interleaved)
+            key = apply_rotary_pos_emb(key, k_pos_emb, self.rotary_interleaved)
             # TODO, can apply positional embedding to value_layer so it has
             # absolute positional embedding.
             # otherwise, only relative positional embedding takes effect
@@ -279,6 +281,7 @@ class SelfAttention(Attention):
         config: TransformerConfig,
         submodules: SelfAttentionSubmodules,
         layer_number: int = 1,
+        rotary_interleaved: bool = False,
         attn_mask_type=AttnMaskType.padding,
         **kwargs,
     ):
@@ -364,6 +367,7 @@ class CrossAttention(Attention):
         config: TransformerConfig,
         submodules: CrossAttentionSubmodules,
         layer_number: int = 1,
+        rotary_interleaved: bool = False,
         attn_mask_type=AttnMaskType.padding,
         **kwargs,
     ):

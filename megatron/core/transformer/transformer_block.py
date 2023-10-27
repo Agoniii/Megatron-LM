@@ -24,6 +24,7 @@ class TransformerBlock(MegatronModule):
         config: TransformerConfig,
         transformer_layer_spec: ModuleSpec,
         self_attn_mask_type=AttnMaskType.padding,
+        rotary_interleaved=False,
         post_layer_norm=True,
         pre_process=True,
         post_process=True,
@@ -61,6 +62,7 @@ class TransformerBlock(MegatronModule):
                 config=self.config,
                 submodules=transformer_layer_spec.submodules,
                 layer_number=layer_number,
+                rotary_interleaved=rotary_interleaved,
                 self_attn_mask_type=self.self_attn_mask_type,
             )
             return layer

@@ -372,6 +372,7 @@ class TransformerLanguageModel(MegatronModule):
             self.rotary_pos_emb = RotaryEmbedding(
                 rotary_dim,
                 args.rotary_percent,
+                rotary_interleaved=args.rotary_interleaved,
                 seq_len_interpolation_factor=args.rotary_seq_len_interpolation_factor
             )
 
