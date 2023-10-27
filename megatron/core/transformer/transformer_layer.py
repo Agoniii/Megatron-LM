@@ -42,7 +42,6 @@ class TransformerLayer(MegatronModule):
         config: TransformerConfig,
         submodules: TransformerLayerSubmodules,
         layer_number: int = 1,
-        rotary_interleaved: bool = False,
         self_attn_mask_type=AttnMaskType.padding,
     ):
         super().__init__(config=config)
@@ -67,7 +66,6 @@ class TransformerLayer(MegatronModule):
         ## [Module 2: SelfAttention]
         self.self_attention = build_module(
             submodules.self_attention, config=self.config, layer_number=layer_number,
-            rotary_interleaved=rotary_interleaved,
         )
 
         ## [Module 3: BiasDropoutFusion]
@@ -87,7 +85,6 @@ class TransformerLayer(MegatronModule):
         ## [Module 5: CrossAttention]
         self.cross_attention = build_module(
             submodules.cross_attention, config=self.config, layer_number=layer_number,
-            rotary_interleaved=rotary_interleaved,
         )
 
         ## [Module 6: BiasDropoutFusion]

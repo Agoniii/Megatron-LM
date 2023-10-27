@@ -47,7 +47,6 @@ class Attention(MegatronModule, ABC):
         config: TransformerConfig,
         submodules: Union[SelfAttentionSubmodules, CrossAttentionSubmodules],
         layer_number: int = 1,
-        rotary_interleaved: bool = False,
         attn_mask_type=AttnMaskType.padding,
         **kwargs,
     ):
@@ -56,7 +55,7 @@ class Attention(MegatronModule, ABC):
         self.config = config
         self.layer_number = layer_number
         self.attn_mask_type = attn_mask_type
-        self.rotary_interleaved = rotary_interleaved
+        self.rotary_interleaved = self.config.rotary_interleaved
 
         # For normal attention without groups, num_query_groups == num_attention_heads,
         # so these two will be the same
@@ -281,7 +280,6 @@ class SelfAttention(Attention):
         config: TransformerConfig,
         submodules: SelfAttentionSubmodules,
         layer_number: int = 1,
-        rotary_interleaved: bool = False,
         attn_mask_type=AttnMaskType.padding,
         **kwargs,
     ):
@@ -367,7 +365,6 @@ class CrossAttention(Attention):
         config: TransformerConfig,
         submodules: CrossAttentionSubmodules,
         layer_number: int = 1,
-        rotary_interleaved: bool = False,
         attn_mask_type=AttnMaskType.padding,
         **kwargs,
     ):

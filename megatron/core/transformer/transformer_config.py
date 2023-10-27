@@ -46,6 +46,8 @@ class TransformerConfig(ModelParallelConfig):
 
         num_moe_experts (int): Number of experts to use for Mixture of Experts. 
                                When set, it replaces MLP with Switch MLP. Defaults to None (no MoE).
+        rotary_interleaved (bool): True is rotate pairs of even and odd dimensions (RoFormer style), 
+                                   False is rotate pairs of first half and second half (LLaMa style). Default to False.
 
         # initialization
         init_method (Callable): Method to initialize weights. Note that bias is always set to
@@ -148,6 +150,7 @@ class TransformerConfig(ModelParallelConfig):
     gated_linear_unit: bool = False
     activation_func: Callable = F.gelu
     num_moe_experts: int = None
+    rotary_interleaved: bool = False
 
     # initialization
     init_method: Callable = None
