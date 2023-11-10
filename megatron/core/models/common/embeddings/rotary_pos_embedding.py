@@ -38,7 +38,11 @@ class RotaryEmbedding(nn.Module):
     """
 
     def __init__(
-        self, kv_channels: int, rotary_percent: float, rotary_interleaved: bool = False, seq_len_interpolation_factor: float = None
+        self,
+        kv_channels: int,
+        rotary_percent: float,
+        rotary_interleaved: bool = False,
+        seq_len_interpolation_factor: float = None,
     ) -> None:
         super().__init__()
 
@@ -80,7 +84,9 @@ class RotaryEmbedding(nn.Module):
         if not self.rotary_interleaved:
             emb = torch.cat((freqs, freqs), dim=-1)
         else:
-            emb = torch.stack((freqs.view(-1, 1), freqs.view(-1, 1)), dim=-1).view(freqs.shape[0], -1)
+            emb = torch.stack((freqs.view(-1, 1), freqs.view(-1, 1)), dim=-1).view(
+                freqs.shape[0], -1
+            )
         # emb [seq_length, .., dim]
         emb = emb[:, None, None, :]
         if parallel_state.get_context_parallel_world_size() > 1:
@@ -139,8 +145,8 @@ def _rotate_half(x: Tensor, rotary_interleaved: bool) -> Tensor:
         x1, x2 = torch.chunk(x, 2, dim=-1)
         return torch.cat((-x2, x1), dim=-1)
     else:
-        x1 = x[:,:,:,::2]
-        x2 = x[:,:,:,1::2]
+        x1 = x[:, :, :, ::2]
+        x2 = x[:, :, :, 1::2]
         x_new = torch.stack((-x2, x1), dim=-1)
         return x_new.view(x_new.shape[0], x_new.shape[1], x_new.shape[2], -1)
 
