@@ -505,6 +505,7 @@ class ParallelAttention(MegatronModule):
         self.layer_number = max(1, layer_number)
         self.attention_type = attention_type
         self.attn_mask_type = attn_mask_type
+        self.rotary_interleaved = config.rotary_interleaved
         self.params_dtype = config.params_dtype
         self.sequence_parallel = config.sequence_parallel
 
@@ -781,8 +782,8 @@ class ParallelAttention(MegatronModule):
         # apply relative positional encoding (rotary embedding)
         if rotary_pos_emb is not None:
             q_pos_emb, k_pos_emb = rotary_pos_emb
-            query_layer = apply_rotary_pos_emb(query_layer, q_pos_emb)
-            key_layer = apply_rotary_pos_emb(key_layer, k_pos_emb)
+            query_layer = apply_rotary_pos_emb(query_layer, q_pos_emb, self.rotary_interleaved)
+            key_layer = apply_rotary_pos_emb(key_layer, k_pos_emb, self.rotary_interleaved)
             # TODO, can apply positional embedding to value_layer so it has
             # absolute positional embedding.
             # otherwise, only relative positional embedding takes effect
@@ -1058,7 +1059,6 @@ class ParallelTransformerLayer(MegatronModule):
         if self.layer_type == LayerType.retro_decoder_with_retriever:
             first_ns = ns % self.retro_chunk_length
             if first_ns > 0:
-                raise Exception("test this case.")
                 first_chunk, rest_chunk = \
                     norm_output[:first_ns], norm_output[first_ns:]
                 first_chunk = torch.nn.functional.pad(
@@ -1126,7 +1126,9 @@ class ParallelTransformerLayer(MegatronModule):
                 norm_input,
                 (0, 0, 0, 0, pad, 0),
                 'constant', 0)[:ns] # [ns, b, d]
-            norm_input = norm_input + residual
+            # TODO: better redesign with inference param
+            args = get_args()
+            norm_input = args.retro_attention_gate * norm_input + residual
 
         # Layer norm post the decoder attention
         norm_output = self.post_inter_attention_norm(norm_input)
@@ -1140,6 +1142,16 @@ class ParallelTransformerLayer(MegatronModule):
                 retriever_attn_mask=None,
                 inference_params=None,
                 rotary_pos_emb=None):
+
+        # Update the params in case the retro param changes during inference
+        # TODO: better redesign with inference param
+        args = get_args()
+        if args.retro_add_retriever:
+            retro_args = get_retro_args()
+            self.retro_num_neighbors = args.retro_num_neighbors
+            self.retro_chunk_length = retro_args.retro_gpt_chunk_length
+            self.retro_retrieved_length = retro_args.retro_gpt_retrieved_length
+
         # hidden_states: [s, b, h]
 
         # Layer norm at the beginning of the transformer layer.

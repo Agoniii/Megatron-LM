@@ -77,7 +77,7 @@ class T5Model(LanguageModule):
         transformer_encoder_layer_spec (ModuleSpec): transformer layer customization specs for encoder
 
         transformer_decoder_layer_spec (ModuleSpec): transformer layer customization specs for decoder
-                
+
         vocab_size (int): vocabulary size
 
         max_sequence_length (int): maximum size of sequence. This is used for positional embedding
@@ -150,7 +150,10 @@ class T5Model(LanguageModule):
         # Rotary Position Embeddings
         if self.position_embedding_type == 'rope':
             self.rotary_pos_emb = RotaryEmbedding(
-                self.config.kv_channels, rotary_percent, seq_len_interpolation_factor
+                kv_channels=self.config.kv_channels,
+                rotary_percent=rotary_percent,
+                rotary_interleaved=self.config.rotary_interleaved,
+                seq_len_interpolation_factor=seq_len_interpolation_factor,
             )
 
         # Transformer encoder
@@ -397,49 +400,6 @@ class T5Model(LanguageModule):
                 sharded_state_dict[output_layer_weight_key] = sharded_output_layer_tensor
 
         return sharded_state_dict
-
-    def state_dict_for_save_checkpoint(self, prefix: str = '', keep_vars: bool = False):
-        """For easy load when model is combined with other heads,
-        add an extra key."""
-
-        state_dict_ = {}
-        state_dict_["embedding"] = self.embedding.state_dict_for_save_checkpoint(
-            prefix=prefix, keep_vars=keep_vars
-        )
-        state_dict_["encoder"] = self.encoder.state_dict_for_save_checkpoint(
-            prefix=prefix, keep_vars=keep_vars
-        )
-        state_dict_["decoder"] = self.decoder.state_dict_for_save_checkpoint(
-            prefix=prefix, keep_vars=keep_vars
-        )
-
-        if self.post_process and self.add_decoder:
-            state_dict_["lm_head"] = self.lm_head.state_dict_for_save_checkpoint(
-                prefix=prefix, keep_vars=keep_vars
-            )
-        # Save word_embeddings.
-        if self.post_process and not self.pre_process and self.add_decoder:
-            state_dict_["word_embeddings_for_head"] = self.embedding.state_dict(
-                prefix=prefix, keep_vars=keep_vars
-            )
-        return state_dict_
-
-    def load_state_dict(self, state_dict, strict=True):
-        """Customized load."""
-        self.embedding.load_state_dict(state_dict["embedding"], strict=strict)
-
-        self.encoder.load_state_dict(state_dict["encoder"], strict=strict)
-
-        self.decoder.load_state_dict(state_dict["decoder"], strict=strict)
-
-        if self.post_process and self.add_decoder:
-            self.lm_head.load_state_dict(state_dict["lm_head"], strict=strict)
-
-        # Load word embeddings
-        if self.post_process and not self.pre_process and self.add_decoder:
-            self.word_embeddings.load_state_dict(
-                state_dict["word_embeddings_for_head"], strict=strict
-            )
 
 
 def t5_extended_attention_mask(attention_mask_list: List[Tensor]) -> List[Tensor]:
